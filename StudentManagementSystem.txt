@@ -1,0 +1,515 @@
+
+#include <iostream>
+#include <string>
+#include <iomanip>
+using namespace std;
+
+const int MAX_COURSES = 5;
+const string ADMIN_PASS = "admin123";
+const int ADMIN_ID = 9999; 
+
+
+int nextID = 1000;
+
+struct Course {
+    string name;
+    int mark;
+};
+
+struct Student {
+    int id;
+    string name;
+    string dept;
+    Course courses[MAX_COURSES];
+    int courseCount;
+    Student* next;
+};
+
+struct QueueNode {
+    Student* student;
+    QueueNode* next;
+};
+
+struct Queue {
+    QueueNode* front;
+    QueueNode* rear;
+
+    Queue() : front(nullptr), rear(nullptr) {}
+
+    void enqueue(Student* s) {
+        QueueNode* node = new QueueNode{ s, nullptr };
+        if (!rear) {
+            front = rear = node;
+        } else {
+            rear->next = node;
+            rear = node;
+        }
+    }
+
+    Student* dequeue() {
+        if (!front) return nullptr;
+        QueueNode* temp = front;
+        Student* s = front->student;
+        front = front->next;
+        if (!front) rear = nullptr;
+        delete temp;
+        return s;
+    }
+
+    bool isEmpty() {
+        return front == nullptr;
+    }
+
+    void clear() {
+        while (!isEmpty()) {
+            Student* s = dequeue();
+            delete s;
+        }
+    }
+};
+
+Student* head = nullptr;
+Queue newStudentsQueue;
+
+string departments[] = { "CS", "IT", "EE", "ME" };
+string coursesCS[] = { "Data Structures", "Algorithms", "Operating Systems", "Database", "Networking" };
+string coursesIT[] = { "Web Development", "Cybersecurity", "Cloud Computing", "Database", "AI" };
+string coursesEE[] = { "Circuits", "Signals", "Power Systems", "Electronics", "Control Systems" };
+string coursesME[] = { "Thermodynamics", "Mechanics", "Fluid Dynamics", "Manufacturing", "CAD" };
+
+
+
+bool isUniqueID(int id) {
+    Student* temp = head;
+    while (temp) {
+        if (temp->id == id) return false;
+        temp = temp->next;
+    }
+    return true;
+}
+
+int selectDepartment() {
+    cout << "Select Department:\n";
+    for (int i = 0; i < 4; i++)
+        cout << i + 1 << ". " << departments[i] << "\n";
+    int choice;
+    cout << "Enter choice: ";
+    cin >> choice;
+    if (choice < 1 || choice > 4) return -1;
+    return choice - 1;
+}
+
+void inputCourses(Student* s) {
+    int deptIndex = -1;
+    for (int i = 0; i < 4; i++) {
+        if (departments[i] == s->dept) {
+            deptIndex = i;
+            break;
+        }
+    }
+    string* deptCourses;
+    if (deptIndex == 0) deptCourses = coursesCS;
+    else if (deptIndex == 1) deptCourses = coursesIT;
+    else if (deptIndex == 2) deptCourses = coursesEE;
+    else deptCourses = coursesME;
+
+    s->courseCount = MAX_COURSES;
+    cout << "Enter marks for courses:\n";
+    for (int i = 0; i < MAX_COURSES; i++) {
+        s->courses[i].name = deptCourses[i];
+        cout << deptCourses[i] << ": ";
+        cin >> s->courses[i].mark;
+        while (s->courses[i].mark < 0 || s->courses[i].mark > 100) {
+            cout << "Invalid mark! Enter again (0-100): ";
+            cin >> s->courses[i].mark;
+        }
+    }
+}
+
+void displayStudent(const Student* s) {
+    cout << left << setw(6) << s->id
+        << setw(20) << s->name
+        << setw(6) << s->dept;
+    for (int i = 0; i < s->courseCount; i++) {
+        cout << setw(18) << s->courses[i].name << ":"
+            << setw(3) << s->courses[i].mark << " ";
+    }
+    cout << "\n";
+}
+
+void displayAll() {
+    if (!head) {
+        cout << "No students to display.\n";
+        return;
+    }
+    cout << left << setw(6) << "ID"
+        << setw(20) << "Name"
+        << setw(6) << "Dept";
+    for (int i = 0; i < MAX_COURSES; i++)
+        cout << setw(22) << ("Course" + to_string(i + 1));
+    cout << "\n---------------------------------------------------------------\n";
+
+    Student* temp = head;
+    while (temp) {
+        displayStudent(temp);
+        temp = temp->next;
+    }
+}
+
+void insertAtBeginning(Student* s) {
+    s->next = head;
+    head = s;
+}
+
+void insertAtEnd(Student* s) {
+    if (!head) {
+        head = s;
+        s->next = nullptr;
+        return;
+    }
+    Student* temp = head;
+    while (temp->next) temp = temp->next;
+    temp->next = s;
+    s->next = nullptr;
+}
+
+void deleteFromBeginning() {
+    if (!head) {
+        cout << "List empty.\n";
+        return;
+    }
+    Student* temp = head;
+    head = head->next;
+    delete temp;
+    cout << "Deleted student from beginning.\n";
+}
+
+void deleteFromEnd() {
+    if (!head) {
+        cout << "List empty.\n";
+        return;
+    }
+    if (!head->next) {
+        delete head;
+        head = nullptr;
+        cout << "Deleted student from end.\n";
+        return;
+    }
+    Student* temp = head;
+    while (temp->next && temp->next->next) temp = temp->next;
+    delete temp->next;
+    temp->next = nullptr;
+    cout << "Deleted student from end.\n";
+}
+
+void deleteByID(int id) {
+    if (!head) {
+        cout << "List empty.\n";
+        return;
+    }
+    if (head->id == id) {
+        Student* temp = head;
+        head = head->next;
+        delete temp;
+        cout << "Deleted student with ID " << id << ".\n";
+        return;
+    }
+    Student* temp = head;
+    while (temp->next && temp->next->id != id) temp = temp->next;
+    if (!temp->next) {
+        cout << "Student with ID " << id << " not found.\n";
+        return;
+    }
+    Student* toDelete = temp->next;
+    temp->next = temp->next->next;
+    delete toDelete;
+    cout << "Deleted student with ID " << id << ".\n";
+}
+
+void deleteAll() {
+    while (head) {
+        Student* temp = head;
+        head = head->next;
+        delete temp;
+    }
+    cout << "All students deleted.\n";
+}
+
+Student* findStudentByID(int id) {
+    Student* temp = head;
+    while (temp) {
+        if (temp->id == id) return temp;
+        temp = temp->next;
+    }
+    return nullptr;
+}
+
+void updateCourse(Student* s) {
+    cout << "Select course to update:\n";
+    for (int i = 0; i < s->courseCount; i++) {
+        cout << i + 1 << ". " << s->courses[i].name << " (Current mark: " << s->courses[i].mark << ")\n";
+    }
+    int choice;
+    cout << "Enter course number to update: ";
+    cin >> choice;
+
+    if (choice < 1 || choice > s->courseCount) {
+        cout << "Invalid choice. No course updated.\n";
+        return;
+    }
+
+    cout << "Enter new mark for " << s->courses[choice - 1].name << ": ";
+    int newMark;
+    cin >> newMark;
+
+    while (newMark < 0 || newMark > 100) {
+        cout << "Invalid mark! Enter again (0-100): ";
+        cin >> newMark;
+    }
+
+    s->courses[choice - 1].mark = newMark;
+    cout << "Course updated successfully.\n";
+}
+
+void updateStudent() {
+    cout << "Enter Student ID to update: ";
+    int id; cin >> id;
+    Student* s = findStudentByID(id);
+    if (!s) {
+        cout << "Student not found.\n";
+        return;
+    }
+
+    cout << "Update Name (Current: " << s->name << "): ";
+    cin.ignore();
+    getline(cin, s->name);
+
+    int dep = selectDepartment();
+    if (dep == -1) {
+        cout << "Invalid department choice.\n";
+        return;
+    }
+    s->dept = departments[dep];
+
+    char updateChoice;
+    cout << "Do you want to update courses? (y/n): ";
+    cin >> updateChoice;
+    if (updateChoice == 'y' || updateChoice == 'Y') {
+        updateCourse(s);
+    }
+
+    cout << "Student updated successfully.\n";
+}
+
+void insertionSort() {
+    if (!head || !head->next) return;
+    Student* sorted = nullptr;
+    Student* current = head;
+    while (current) {
+        Student* next = current->next;
+        if (!sorted || current->id < sorted->id) {
+            current->next = sorted;
+            sorted = current;
+        }
+        else {
+            Student* temp = sorted;
+            while (temp->next && temp->next->id < current->id)
+                temp = temp->next;
+            current->next = temp->next;
+            temp->next = current;
+        }
+        current = next;
+    }
+    head = sorted;
+    cout << "List sorted by student ID.\n";
+}
+
+Student** toArray(int& count) {
+    count = 0;
+    Student* temp = head;
+    while (temp) {
+        count++;
+        temp = temp->next;
+    }
+    Student** arr = new Student * [count];
+    temp = head;
+    for (int i = 0; i < count; i++) {
+        arr[i] = temp;
+        temp = temp->next;
+    }
+    return arr;
+}
+
+Student* binarySearch(Student** arr, int count, int id) {
+    int left = 0, right = count - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (arr[mid]->id == id) return arr[mid];
+        else if (arr[mid]->id < id) left = mid + 1;
+        else right = mid - 1;
+    }
+    return nullptr;
+}
+
+Student* inputStudent() {
+    Student* s = new Student;
+    s->id = nextID++;
+    cout << "Assigned Student ID: " << s->id << "\n";
+    cout << "Enter Name: ";
+    cin.ignore();
+    getline(cin, s->name);
+    int dep = selectDepartment();
+    if (dep == -1) {
+        cout << "Invalid department choice.\n";
+        delete s;
+        return nullptr;
+    }
+    s->dept = departments[dep];
+    inputCourses(s);
+    s->next = nullptr;
+    return s;
+}
+
+
+void adminMenu() {
+    while (true) {
+        cout << "\n--- Admin Menu ---\n";
+        cout << "1. Add Student\n";
+        cout << "2. Delete Student\n";
+        cout << "3. Update Student\n";
+        cout << "4. Display All Students\n";
+        cout << "5. Sort by ID\n";
+        cout << "6. Search by ID\n";
+        cout << "7. Exit\n";
+        cout << "Enter choice: ";
+        int choice; cin >> choice;
+
+        if (choice == 1) {
+            Student* s = inputStudent();
+            if (!s) continue;
+
+            newStudentsQueue.enqueue(s);
+            cout << "Student added to queue.\n";
+
+            Student* toAdd = newStudentsQueue.dequeue();
+            if (toAdd) {
+                insertAtEnd(toAdd);
+                cout << "Student added to list.\n";
+            }
+        }
+        else if (choice == 2) {
+            cout << "Delete options:\n1. From Beginning\n2. By Student ID\n3. From End\n4. Delete All\nChoice: ";
+            int dchoice; cin >> dchoice;
+            if (dchoice == 1) deleteFromBeginning();
+            else if (dchoice == 2) {
+                cout << "Enter Student ID to delete: ";
+                int id; cin >> id;
+                deleteByID(id);
+            }
+            else if (dchoice == 3) deleteFromEnd();
+            else if (dchoice == 4) deleteAll();
+            else cout << "Invalid choice.\n";
+        }
+        else if (choice == 3) {
+            updateStudent();
+        }
+        else if (choice == 4) {
+            displayAll();
+        }
+        else if (choice == 5) {
+            insertionSort();
+        }
+        else if (choice == 6) {
+            cout << "Enter Student ID to search: ";
+            int id; cin >> id;
+            insertionSort();
+            int count;
+            Student** arr = toArray(count);
+            Student* s = binarySearch(arr, count, id);
+            if (s) {
+                cout << "Student found:\n";
+                displayStudent(s);
+            }
+            else {
+                cout << "Student not found.\n";
+            }
+            delete[] arr;
+        }
+        else if (choice == 7) {
+            cout << "Exiting admin menu.\n";
+            break;
+        }
+        else {
+            cout << "Invalid choice.\n";
+        }
+    }
+}
+
+void userMenu() {
+    while (true) {
+        cout << "\n--- User Menu ---\n";
+        cout << "1. Search Student by ID\n";
+        cout << "2. Display All Students\n";
+        cout << "3. Exit\n";
+        cout << "Enter choice: ";
+        int choice; cin >> choice;
+
+        if (choice == 1) {
+            cout << "Enter Student ID to search: ";
+            int id; cin >> id;
+            insertionSort();
+            int count;
+            Student** arr = toArray(count);
+            Student* s = binarySearch(arr, count, id);
+            if (s) {
+                cout << "Student found:\n";
+                displayStudent(s);
+            }
+            else {
+                cout << "Student not found.\n";
+            }
+            delete[] arr;
+        }
+        else if (choice == 2) {
+            displayAll();
+        }
+        else if (choice == 3) {
+            cout << "Exiting user menu.\n";
+            break;
+        }
+        else {
+            cout << "Invalid choice.\n";
+        }
+    }
+}
+
+
+int main() {
+    while (true) {
+        cout << "\nSelect Role:\n1. Admin\n2. User\n3. Exit\nChoice: ";
+        int role; cin >> role;
+        if (role == 1) {
+            cout << "Enter Admin Password: ";
+            string pass; cin >> pass;
+            if (pass == ADMIN_PASS) {
+                adminMenu();
+            }
+            else {
+                cout << "Incorrect password.\n";
+            }
+        }
+        else if (role == 2) {
+            userMenu();
+        }
+        else if (role == 3) {
+            cout << "Exiting program.\n";
+            deleteAll();
+            newStudentsQueue.clear();
+            break;
+        }
+        else {
+            cout << "Invalid choice.\n";
+        }
+    }
+    return 0;
+}
